@@ -42,18 +42,12 @@ Job.prototype.compile = function() {
     };
     return this.processFile(this.file, ctx)
         .then(code => {
-            const fn = new Function('context', runtime +
-                'return function(locals) {' +
+            return new Function('locals', runtime +
                 'var out = [];' +
                 'locals = extend({}, globals, locals);' +
                 code +
-                ';return out.join("");' +
-                '}'
+                ';return out.join("");'
             );
-            // TODO get rid of that, just return a function m/b
-            return fn({
-                expressions: this.expressions
-            });
         });
 };
 

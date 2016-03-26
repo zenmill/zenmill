@@ -336,13 +336,13 @@ OTOH you can cache statically compiled functions for rendering same templates wi
 
 Compilation is done like this:
 
-  * AST nodes are visited recursively with `_process_<nodetype>` methods;
-  * each method returns a string statement (code);
+  * AST nodes are [visited recursively](src/job.js#L9);
+  * each method returns a string `statement` (code);
   * you can use stuff from `runtime.js` in statements (but not in templates themselves);
   * buffered statements (the ones that actually spit content) look like `out.push(something)`;
-  * expressions are compiled via `eval`, each expression is pushed into an array and becomes available inside code via `$$[<index>]`;
   * `locals` object is the data you provide to compiled function at rendering stage;
-  * every scope-sensitive code is wrapped into a function, which copies locals object;
+  * expressions are wrapped in IIFE and `with(locals)` statement;
+  * every scope-sensitive code is wrapped into a function, which inherits from locals object;
   * all statements are simply joined with semicolon and are wrapped into `function (locals) { }`
 
 ## License
