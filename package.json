@@ -1,0 +1,35 @@
+{
+  "name": "zenmill",
+  "version": "0.0.0",
+  "description": "Template language with strong spirit",
+  "main": "index.js",
+  "scripts": {
+    "compile": "pegjs src/grammar.peg",
+    "check": "eslint .",
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com/zenmill/zenmill"
+  },
+  "keywords": [
+    "template",
+    "language",
+    "engine"
+  ],
+  "author": "Boris Okunskiy",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/zenmill/zenmill/issues"
+  },
+  "homepage": "https://github.com/zenmill/zenmill",
+  "devDependencies": {
+    "eslint": "^2.4.0",
+    "fs-promise": "^0.5.0",
+    "pegjs": "^0.9.0"
+  },
+  "dependencies": {
+    "angular-expressions": "^0.3.0",
+    "mocha": "^2.4.5"
+  }
+}

@@ -1,0 +1,332 @@
+Nodes
+  = Node*
+
+Node
+  = ZenNode
+  / Plain
+
+ZenNode
+  = Include
+  / Inline
+  / Block
+  / Comment
+  / Var
+  / FlowControl
+  / Expression
+
+// Includes
+
+Include "include"
+  = IncludeSelfClosing
+  / IncludeWithDefs
+
+IncludeSelfClosing
+  = tag: IncludeTagStart '/>'
+  {
+    return {
+      type: 'include',
+      file: tag.file,
+      nodes: []
+    }
+  }
+
+IncludeWithDefs
+  = tag: IncludeTagStart '>' ws* nodes: IncludeNodes '</include>'
+  {
+    return {
+      type: 'include',
+      file: tag.file,
+      nodes: nodes
+    }
+  }
+
+IncludeTagStart
+  = '<include' ws+ 'file' ws* '=' ws* file: AttrValue ws*
+  {
+    return {
+      file: file
+    }
+  }
+
+IncludeNodes
+  = IncludeNode*
+
+IncludeNode
+  = node: Def ws* { return node }
+  / node: Var ws* { return node }
+
+// Inline
+
+Inline "inline"
+  = '<inline' ws+ 'file' ws* '=' ws* file: AttrValue ws* '/>'
+  {
+    return {
+      type: 'inline',
+      file: file
+    }
+  }
+
+// Defs
+
+Def "definition"
+  = '<' def: DefTag ':' name: VarName ws* '>'
+    nodes: Nodes
+    '</' _def: DefTag & { return def == _def }
+    ':' _name: VarName & { return name == _name } '>'
+  {
+    return {
+      type: 'def',
+      mode: def,
+      name: name,
+      nodes: nodes
+    }
+  }
+
+DefTag
+  = 'def'
+  / 'append'
+  / 'prepend'
+
+// Blocks
+
+Block "block"
+  = BlockSelfClosing
+  / BlockWithContent
+
+BlockSelfClosing
+  = '<block:' name: VarName ws* '/>'
+  {
+    return {
+      type: 'block',
+      name: name,
+      nodes: []
+    }
+  }
+
+BlockWithContent
+  = '<block:' name: VarName ws* '>'
+    nodes: Nodes
+    '</block:' _name: VarName & { return name == _name } '>'
+  {
+    return {
+      type: 'block',
+      name: name,
+      nodes: nodes
+    }
+  }
+
+// Comments
+
+Comment "comment"
+  = '<!--' content: $(CommentToken*) '-->'
+  {
+    return {
+      type: 'comment',
+      content: content
+    }
+  }
+
+CommentToken
+  = !'-->' .
+
+// Var
+
+Var "var"
+  = '<var:' name: VarName ws* '>'
+    expr: $(ExpressionTokens)
+    '</var:' _name: VarName & { return name == _name } '>'
+  {
+    return {
+      type: 'var',
+      name: name,
+      expr: expr
+    }
+  }
+
+// Expression
+
+Expression "expression"
+  = EscapedExpression
+  / UnescapedExpression
+
+EscapedExpression
+  = '#{' expr: $(ExpressionTokens) '}'
+  {
+    return {
+      type: 'expr',
+      escape: true,
+      buffer: true,
+      expr: expr
+    }
+  }
+
+UnescapedExpression
+  = '!{' expr: $(ExpressionTokens) '}'
+  {
+    return {
+      type: 'expr',
+      escape: false,
+      buffer: true,
+      expr: expr
+    }
+  }
+
+ExpressionTokens
+  = ExpressionToken+
+
+ExpressionToken
+  = StringLiteral
+  / ObjectLiteral
+  / [^}{"'<]
+
+ObjectLiteral
+  = '{' ExpressionTokens '}'
+
+// Flow control
+
+FlowControl
+  = IfStatement
+  / CaseStatement
+  / EachStatement
+
+IfStatement "if"
+  = IfStandalone
+  / IfCompound
+
+IfStandalone
+  = '<if' ws+ 'expr' ws* '=' ws* expr: AttrValue ws* '>'
+    nodes: Nodes
+    '</if>'
+  {
+    return {
+      type: 'if',
+      when: [{
+        type: 'when',
+        expr: expr,
+        nodes: nodes
+      }]
+    }
+  }
+
+IfCompound
+  = '<if>' ws* when: When+ otherwise: Otherwise? '</if>'
+    {
+      return {
+        type: 'if',
+        when: when,
+        otherwise: otherwise
+      }
+    }
+
+When "when"
+  = '<when' ws+ 'expr' ws* '=' ws* expr: AttrValue ws* '>'
+    nodes: Nodes
+    '</when>' ws*
+  {
+    return {
+      type: 'when',
+      expr: expr,
+      nodes: nodes
+    }
+  }
+
+Otherwise "otherwise"
+  = '<otherwise>'
+    nodes: Nodes
+    '</otherwise>' ws*
+  {
+    return {
+      type: 'otherwise',
+      nodes: nodes
+    }
+  }
+
+CaseStatement "case"
+  = '<case:' name: VarName ws+ 'expr' ws* '=' ws* expr: AttrValue ws* '>' ws*
+    when: When+ otherwise: Otherwise?
+    '</case:' _name: VarName & { return name == _name } '>'
+  {
+    return {
+      type: 'case',
+      name: name,
+      expr: expr,
+      when: when,
+      otherwise: otherwise
+    }
+  }
+
+EachStatement "each"
+  = '<each:' name: VarName ws+ 'in' ws* '=' ws* expr: AttrValue ws* '>' ws*
+    nodes: Nodes
+    '</each:' _name: VarName & { return name == _name } '>'
+  {
+    return {
+      type: 'each',
+      name: name,
+      expr: expr,
+      nodes: nodes
+    }
+  }
+
+// Plain text
+
+Keyword
+  = 'include'
+  / 'inline'
+  / 'block:' VarName
+  / 'def:' VarName
+  / 'append:' VarName
+  / 'prepend:' VarName
+  / 'if'
+  / 'case:' VarName
+  / 'when'
+  / 'otherwise'
+  / 'each:' VarName
+  / 'var:' VarName
+
+Plain "plain text"
+  = $(PlainToken+)
+
+PlainToken
+  = [^<#!$]
+  / '<' !('/'? Keyword (ws / '/' / '>')) !('!--')
+  / [#!$] !'{'
+
+// Commons
+
+VarName "variable name"
+  = $( [a-z] [a-zA-Z0-9_]* )
+
+AttrValue "attribute value" // without escape sequences
+  = SingleQuoteString
+  / DoubleQuoteString
+
+SingleQuoteString "string"
+  = "'" chars: $([^']*) "'"
+  { return chars }
+
+DoubleQuoteString "string"
+  = '"' chars: $([^"]*) '"'
+  { return chars }
+
+StringLiteral "string" // with escape sequences
+  = '"' DoubleStringCharacter* '"'
+  / "'" SingleStringCharacter* "'"
+
+DoubleStringCharacter
+  = !'"' !'\\' SourceCharacter
+  / EscapeSequence
+
+SingleStringCharacter
+  = !"'" !'\\' SourceCharacter
+  / EscapeSequence
+
+SourceCharacter
+  = [^\n\r\u2028\u2029]
+
+EscapeSequence
+  = '\\' SourceCharacter
+
+ws "whitespace"
+  = [ \t\n\r]
+
