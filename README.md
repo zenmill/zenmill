@@ -5,10 +5,100 @@ Isomorphic (Node & Browser) template engine for composing XML-ish documents
 
 Key features:
 
-  * templates composability (super powerful includes)
-  * paths abstraction (load templates from fs, db, script tags, etc.)
-  * isomorphic — works both with Node and Browser
-  * fast — compiled template functions are lru-cached by default
+  * **composable templates** — super powerful includes with blocks
+    (akin to Jade's extend/block)
+  * **flexibility** — template loading is abstracted from fs,
+    you can load templates from fs, db, script tags, etc.
+  * **isomorphic** — works both with Node and Browser
+  * **asynchronous** compilation, absolutely no synchronous I/O
+  * **fast** — compiled template functions can be cached
+    (rendering is synchronous and lightning-fast, too)
+    
+## Prerequisites
+
+ZenMill is written in 2016, so it assumes an environment with native `Promise`
+available globally. Use [polyfill](https://github.com/stefanpenner/es6-promise)
+if necessary.
+  
+## Installation
+
+```bash
+npm i --save zenmill
+```
+
+## Usage
+
+Using ZenMill might seem a bit more involved comparing to most
+template engines: you need to create a compiler instance and
+provide a template loading function (which is simply a `(path) => Promise<String>`).
+
+Here's an example of how to setup a compiler in Node:
+
+```es6
+import zenmill from 'zenmill';
+import fs from 'fs-promise';
+
+const compiler = zenmill(file => fs.readFile(`templates/${file}`, 'utf-8'));
+
+export default compiler;
+```
+
+And here's how one could setup a loading in browser (assumes browserify + babelify):
+
+```es6
+import zenmill from 'zenmill';
+
+const compiler zenmill(file => {
+  const elem = document.getElementById(file);
+  if (!elem) {
+    throw new Error(`Template ${file} not found.`);
+  }
+  return elem.textContent;
+});
+
+export default compiler;
+```
+
+Then use `compiler` to render templates:
+
+```es6
+compiler.render('users/list.html', { users })
+    .then(html => ...)
+```
+
+The `compiler` instance itself is a function that returns a Promise
+with compiled function. This function can be called synchronously
+to render template with provided `data`.
+
+Here's an ES7 example of how we could implement mtime-based caching
+of template functions:
+
+```es6
+import zenmill from 'zenmill';
+import fs from 'fs-promise';
+
+const cache = {};
+
+const compiler = zenmill(file => fs.readFile('templates/' + file, 'utf-8'));
+
+async function compile(file) {
+  const cached = cache[file];
+  if (cached) {
+    const stat = await fs.stat('templates/' + file);
+    if (cached.mtime > stat.mtime.getTime()) {
+      return cached.fn; 
+    }
+  }
+  const fn = await compiler(file);
+  cached[file] = { mtime: Date.now(), fn };
+  return fn;
+}
+
+export async function render(file, data) {
+  const fn = await compile(file);
+  return fn(data);
+}
+```
   
 ## Templates syntax: compile-time constructs
 
@@ -344,6 +434,39 @@ Compilation is done like this:
   * expressions are wrapped in IIFE and `with(locals)` statement;
   * every scope-sensitive code is wrapped into a function, which inherits from locals object;
   * all statements are simply joined with semicolon and are wrapped into `function (locals) { }`
+  
+## Questions and Answers
+
+### Why not ship caching if that's so easy?
+
+— Because we don't want neither dependencies nor coupling. The only thing that 
+couples template engine to platform (e.g. Node or Browser or whatever)
+is template loading (including "includes"), therefore we keep that abstracted.
+We also believe that simple caching is rather straightforward to implement
+(especially with ES7), while complex ones would benefit from custom approach.
+    
+### Why do you need templates in browser with all these modern frontend frameworks?
+
+— Most probably, you don't. However, there are definitely some use cases
+where you could benefit from isomorphic template engine. Just don't get
+obsessed with trying to do that when you don't really need to.
+
+### Why bother abstracting templates loading?
+
+Isn't that easy enough to ship two different loaders for Node and Browser?
+
+— It's easy indeed. Yet, you probably don't realize what cool things
+you could do with abstract loaders. Say, you're building a CMS
+(where content prerendering matters), and you want templates to be
+customizable. In this case you could come up with three levels of templates: 
+system => theme => user, where user templates, if exist, override theme templates,
+and theme templates override system templates.
+
+This scheme is straightforward with ZenMill by supplying a fallback-based loader
+(with logic like "try user, if fails try theme, if fails try system").
+
+The important thing is that this also works with all includes, which is
+contrast to **every single template engine** out there.
 
 ## License
 

@@ -16,7 +16,7 @@ module.exports = function createCompiler(load, options) {
     options = options || {};
     const stripComments = !!options.stripComments;
 
-    return function compile(file) {
+    function compile(file) {
         file = path.normalize(file);
         const job = new Job({
             file,
@@ -24,6 +24,12 @@ module.exports = function createCompiler(load, options) {
             stripComments
         });
         return job.compile();
+    }
+
+    compile.render = function(file, data) {
+        return compile(file).then(fn => fn(data));
     };
+
+    return compile;
 };
 

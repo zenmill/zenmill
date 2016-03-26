@@ -34,8 +34,5 @@
     "mocha": "^2.4.5",
     "pegjs": "^0.9.0",
     "pre-commit": "^1.1.2"
-  },
-  "dependencies": {
-    "ejs": "^2.4.1"
   }
 }
