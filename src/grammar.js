@@ -155,7 +155,6 @@ module.exports = (function() {
             return {
               type: 'expr',
               escape: true,
-              buffer: true,
               expr: expr
             }
           },
@@ -165,7 +164,6 @@ module.exports = (function() {
             return {
               type: 'expr',
               escape: false,
-              buffer: true,
               expr: expr
             }
           },

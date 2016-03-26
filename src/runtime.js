@@ -1,5 +1,3 @@
-var $$ = context.expressions;
-
 var globals = {
     encodeURI: encodeURI,
     encodeURIComponent: encodeURIComponent,
@@ -53,3 +51,4 @@ function each(obj, varName, locals, fn) {
     }
     throw new Error('Non-iterable object ' + obj);
 }
+

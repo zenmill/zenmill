@@ -1,7 +1,6 @@
 'use strict';
 
 const path = require('path');
-const AngularExpressions = require('angular-expressions');
 const grammar = require('./grammar');
 const fs = require('fs'); // for brfs
 
@@ -177,32 +176,17 @@ function processInline(node, ctx) {
 }
 
 function processExpr(node) {
-    this.expressions.push(AngularExpressions.compile(node.expr));
-    const index = this.expressions.length - 1;
-    let st = null;
-    if (node.buffer) {
-        if (node.escape) {
-            st = bufferEscaped('$$[' + index + '](locals)');
-        } else {
-            st = buffer('$$[' + index + '](locals)');
-        }
-    } else {
-        st = '$$[' + index + '](locals)';
-    }
-    return st;
+    const expr = wrapExpr(node.expr);
+    return node.escape ? bufferEscaped(expr) : buffer(expr);
 }
 
 function processVar(node) {
-    this.expressions.push(AngularExpressions.compile(node.expr));
-    const index = this.expressions.length - 1;
-    return 'locals.' + node.name + ' = $$[' + index + '](locals)';
+    return 'locals.' + node.name + ' = ' + wrapExpr(node.expr);
 }
 
 function processIf(node, ctx) {
     const promises = node.when.map(when => {
-        this.expressions.push(AngularExpressions.compile(when.expr));
-        const index = this.expressions.length - 1;
-        const ifCap = 'if ($$[' + index + '](locals))';
+        const ifCap = 'if (' + wrapExpr(when.expr) + ')';
         return this.processNodes(when.nodes, ctx)
             .then(code => ifCap + '{' + code + '}');
     });
@@ -218,10 +202,7 @@ function processIf(node, ctx) {
 }
 
 function processEach(node, ctx) {
-    const job = this;
-    job.expressions.push(AngularExpressions.compile(node.expr));
-    const index = job.expressions.length - 1;
-    const statement = 'each($$[' + index + '](locals),' +
+    const statement = 'each(' + wrapExpr(node.expr) + ',' +
         JSON.stringify(node.name) + ',' +
         'locals,' +
         'function(locals) {';
@@ -246,6 +227,10 @@ function findDefinition(name, ctx) {
 
 function scoped(code) {
     return '(function(locals){' + code + '})(Object.create(locals))';
+}
+
+function wrapExpr(expr) {
+    return '(function() { with(locals) { return ' + expr + ' }})()';
 }
 
 function bufferText(str) {

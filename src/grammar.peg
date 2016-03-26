@@ -155,7 +155,6 @@ EscapedExpression
     return {
       type: 'expr',
       escape: true,
-      buffer: true,
       expr: expr
     }
   }
@@ -166,7 +165,6 @@ UnescapedExpression
     return {
       type: 'expr',
       escape: false,
-      buffer: true,
       expr: expr
     }
   }

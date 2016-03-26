@@ -56,18 +56,13 @@ describe('Compiler', function() {
     });
 
     it('should process vars with respect to scopes', function() {
-        return render('vars/index.html')
+        return render('vars/index.html', { label: null })
             .then(html => assertHtmlFile(html, 'vars/_index.html'));
     });
 
     it('should process inlines', function() {
         return render('inlines/index.html')
             .then(html => assertHtmlFile(html, 'inlines/_index.html'));
-    });
-
-    it('should process if statements without locals', function() {
-        return render('if/index.html')
-            .then(html => assertHtmlFile(html, 'if/_undefined.html'));
     });
 
     it('should process if when statements', function() {
