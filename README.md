@@ -269,13 +269,13 @@ To iterate over collections (arrays or objects) use `<each:varName in="collectio
 
 Let's say your data looks like this:
 
-```json
+```js
 {
   users: [
     { name: 'Alice' },
     { name: 'Joe' },
     { name: 'Jane' }
-  ];
+  ]
 }
 ```
 
@@ -311,12 +311,12 @@ Some additional variables become available inside `<each:user>` scope:
 
 Let's say your data looks like this:
 
-```json
+```js
 {
   users: {
     alice: 'Alice',
     bob: 'Bob'
-  };
+  }
 }
 ```
 
@@ -350,7 +350,7 @@ Some additional variables become available inside `<each:user>` scope:
 
 ## Grammar
 
-A [PegJS](http://pegjs.org) grammar [is available](https://github.com/inca/nanotemplates/tree/master/grammar/template.peg).
+A [PegJS](http://pegjs.org) grammar [is available](src/grammar.peg).
 
 ## Notes on compilation
 

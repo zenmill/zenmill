@@ -14,7 +14,7 @@ var globals = {
 function extend() {
     var argv = [].slice.call(arguments);
     return argv.reduce(function(result, current) {
-        Object.keys(current).forEach(function(key) {
+        Object.keys(current || {}).forEach(function(key) {
             result[key] = current[key];
         });
         return result;

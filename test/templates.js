@@ -96,7 +96,7 @@ describe('Compiler', function() {
     });
 
     it('should process case otherwise statements', function() {
-        return render('if/index.html')
+        return render('case/index.html', { friends: 100500 })
             .then(html => assertHtmlFile(html, 'case/_100500.html'));
     });
 

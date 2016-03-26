@@ -2,7 +2,7 @@
 
 const path = require('path');
 const AngularExpressions = require('angular-expressions');
-const grammar = require('./parser');
+const grammar = require('./grammar');
 const fs = require('fs'); // for brfs
 
 const runtime = fs.readFileSync(__dirname + '/runtime.js', 'utf-8');
@@ -70,28 +70,33 @@ Job.prototype.processFile = function(file, ctx) {
 };
 
 Job.prototype.processNodes = function(nodes, ctx) {
-    const promises = nodes.map(node => {
-        if (typeof node == 'string') {
-            return this._process_plain(node);
-        }
-        return this['_process_' + node.type](node, ctx);
-    });
-    return Promise.all(promises)
+    return Promise.all(nodes.map(node => this.processNode(node, ctx)))
         .then(statements => statements.join(';'));
 };
 
-Job.prototype._process_plain = function(text) {
+Job.prototype.processNode = function(node, ctx) {
+    if (typeof node == 'string') {
+        return bufferText(node);
+    }
+    const handler = Job.NODE_TYPES[node.type];
+    if (!handler) {
+        throw new Error('Unknown node type: ' + node.type);
+    }
+    return handler.call(this, node, ctx);
+};
+
+Job.prototype.processPlain = function(text) {
     return bufferText(text);
 };
 
-Job.prototype._process_comment = function(node, _ctx) {
+Job.prototype.processComment = function(node, _ctx) {
     if (this.stripComments) {
         return;
     }
     return bufferText('<!--' + node.content + '-->');
 };
 
-Job.prototype._process_def = function(node, ctx) {
+Job.prototype.processDef = function(node, ctx) {
     return this.processNodes(node.nodes, ctx)
         .then(code => {
             const def = ctx.defs[node.name];
@@ -112,7 +117,7 @@ Job.prototype._process_def = function(node, ctx) {
         });
 };
 
-Job.prototype._process_block = function(node, ctx) {
+Job.prototype.processBlock = function(node, ctx) {
     const def = findDefinition(node.name, ctx);
     return this.processNodes(node.nodes, ctx)
         .then(code => {
@@ -130,26 +135,24 @@ Job.prototype._process_block = function(node, ctx) {
         });
 };
 
-Job.prototype._process_include = function(node, ctx) {
-    let statements = '';
+Job.prototype.processInclude = function(node, ctx) {
+    const statements = [];
     const newCtx = {
         parent: ctx,
         file: ctx.file,
         defs: {}
     };
-    const promises = node.nodes.map(node => {
-        return this['_process_' + node.type](node, newCtx)
-    });
+    const promises = node.nodes.map(node => this.processNode(node, newCtx));
     return Promise.all(promises)
-        .then(code => {
-            statements += code;
+        .then(_statements => {
+            _statements.forEach(st => statements.push(st));
             newCtx.file = localPath(newCtx.file, node.file);
             return this.processFile(node.file, newCtx);
         })
-        .then(code => scoped(statements + code));
+        .then(code => scoped(statements.concat([code]).join(';')));
 };
 
-Job.prototype._process_inline = function(node, ctx) {
+Job.prototype.processInline = function(node, ctx) {
     let escaped = true;
     if (node.file.indexOf('!') === 0) {
         escaped = false;
@@ -160,7 +163,7 @@ Job.prototype._process_inline = function(node, ctx) {
         .then(content => escaped ? bufferEscapedText(content) : bufferText(content));
 };
 
-Job.prototype._process_expr = function(node, _ctx) {
+Job.prototype.processExpr = function(node, _ctx) {
     this.expressions.push(AngularExpressions.compile(node.expr));
     const index = this.expressions.length - 1;
     let st = null;
@@ -176,13 +179,13 @@ Job.prototype._process_expr = function(node, _ctx) {
     return st;
 };
 
-Job.prototype._process_var = function(node, _ctx) {
+Job.prototype.processVar = function(node, _ctx) {
     this.expressions.push(AngularExpressions.compile(node.expr));
     const index = this.expressions.length - 1;
     return 'locals.' + node.name + ' = $$[' + index + '](locals)';
 };
 
-Job.prototype._process_if = function(node, ctx) {
+Job.prototype.processIf = function(node, ctx) {
     const promises = node.when.map(when => {
         this.expressions.push(AngularExpressions.compile(when.expr));
         const index = this.expressions.length - 1;
@@ -201,7 +204,7 @@ Job.prototype._process_if = function(node, ctx) {
         });
 };
 
-Job.prototype._process_case = function(node, ctx) {
+Job.prototype.processCase = function(node, ctx) {
     let statement = '';
     this.expressions.push(AngularExpressions.compile(node.expr));
     const index = this.expressions.length - 1;
@@ -223,11 +226,11 @@ Job.prototype._process_case = function(node, ctx) {
                 return scoped(statement);
             }
             return this.processNodes(node.otherwise.nodes, ctx)
-                .then(code => scoped(statement + 'else {' + code + '}'));
+                .then(code => scoped(statement + ' else {' + code + '}'));
         });
 };
 
-Job.prototype._process_each = function(node, ctx) {
+Job.prototype.processEach = function(node, ctx) {
     const job = this;
     job.expressions.push(AngularExpressions.compile(node.expr));
     const index = job.expressions.length - 1;
@@ -273,3 +276,17 @@ function bufferEscaped(code) {
 function buffer(code) {
     return 'out.push(' + code + ')';
 }
+
+Job.NODE_TYPES = {
+    'plain': Job.prototype.processPlain,
+    'comment': Job.prototype.processComment,
+    'def': Job.prototype.processDef,
+    'block': Job.prototype.processBlock,
+    'include': Job.prototype.processInclude,
+    'inline': Job.prototype.processInline,
+    'expr': Job.prototype.processExpr,
+    'var': Job.prototype.processVar,
+    'if': Job.prototype.processIf,
+    'case': Job.prototype.processCase,
+    'each': Job.prototype.processEach
+};

@@ -511,7 +511,7 @@ module.exports = (function() {
     function peg$parseNode() {
       var s0;
 
-      s0 = peg$parseNanoNode();
+      s0 = peg$parseZenNode();
       if (s0 === peg$FAILED) {
         s0 = peg$parsePlain();
       }
@@ -519,7 +519,7 @@ module.exports = (function() {
       return s0;
     }
 
-    function peg$parseNanoNode() {
+    function peg$parseZenNode() {
       var s0;
 
       s0 = peg$parseInclude();
