@@ -7,6 +7,19 @@ const fs = require('fs'); // for brfs
 
 const runtime = fs.readFileSync(__dirname + '/runtime.js', 'utf-8');
 
+const NODE_TYPES = {
+    'plain': processPlain,
+    'comment': processComment,
+    'def': processDef,
+    'block': processBlock,
+    'include': processInclude,
+    'inline': processInline,
+    'expr': processExpr,
+    'var': processVar,
+    'if': processIf,
+    'each': processEach
+};
+
 /**
  * Unit of work of template compiler.
  *
@@ -78,25 +91,25 @@ Job.prototype.processNode = function(node, ctx) {
     if (typeof node == 'string') {
         return bufferText(node);
     }
-    const handler = Job.NODE_TYPES[node.type];
+    const handler = NODE_TYPES[node.type];
     if (!handler) {
         throw new Error('Unknown node type: ' + node.type);
     }
     return handler.call(this, node, ctx);
 };
 
-Job.prototype.processPlain = function(text) {
+function processPlain(text) {
     return bufferText(text);
-};
+}
 
-Job.prototype.processComment = function(node, _ctx) {
+function processComment(node) {
     if (this.stripComments) {
         return;
     }
     return bufferText('<!--' + node.content + '-->');
-};
+}
 
-Job.prototype.processDef = function(node, ctx) {
+function processDef(node, ctx) {
     return this.processNodes(node.nodes, ctx)
         .then(code => {
             const def = ctx.defs[node.name];
@@ -115,9 +128,9 @@ Job.prototype.processDef = function(node, ctx) {
                 code: code
             };
         });
-};
+}
 
-Job.prototype.processBlock = function(node, ctx) {
+function processBlock(node, ctx) {
     const def = findDefinition(node.name, ctx);
     return this.processNodes(node.nodes, ctx)
         .then(code => {
@@ -133,9 +146,9 @@ Job.prototype.processBlock = function(node, ctx) {
                     return def.code;
             }
         });
-};
+}
 
-Job.prototype.processInclude = function(node, ctx) {
+function processInclude(node, ctx) {
     const statements = [];
     const newCtx = {
         parent: ctx,
@@ -150,9 +163,9 @@ Job.prototype.processInclude = function(node, ctx) {
             return this.processFile(node.file, newCtx);
         })
         .then(code => scoped(statements.concat([code]).join(';')));
-};
+}
 
-Job.prototype.processInline = function(node, ctx) {
+function processInline(node, ctx) {
     let escaped = true;
     if (node.file.indexOf('!') === 0) {
         escaped = false;
@@ -161,9 +174,9 @@ Job.prototype.processInline = function(node, ctx) {
     const file = localPath(ctx.file, node.file);
     return this.load(file)
         .then(content => escaped ? bufferEscapedText(content) : bufferText(content));
-};
+}
 
-Job.prototype.processExpr = function(node, _ctx) {
+function processExpr(node) {
     this.expressions.push(AngularExpressions.compile(node.expr));
     const index = this.expressions.length - 1;
     let st = null;
@@ -177,15 +190,15 @@ Job.prototype.processExpr = function(node, _ctx) {
         st = '$$[' + index + '](locals)';
     }
     return st;
-};
+}
 
-Job.prototype.processVar = function(node, _ctx) {
+function processVar(node) {
     this.expressions.push(AngularExpressions.compile(node.expr));
     const index = this.expressions.length - 1;
     return 'locals.' + node.name + ' = $$[' + index + '](locals)';
-};
+}
 
-Job.prototype.processIf = function(node, ctx) {
+function processIf(node, ctx) {
     const promises = node.when.map(when => {
         this.expressions.push(AngularExpressions.compile(when.expr));
         const index = this.expressions.length - 1;
@@ -202,35 +215,9 @@ Job.prototype.processIf = function(node, ctx) {
             return this.processNodes(node.otherwise.nodes, ctx)
                 .then(code => scoped(statement + 'else {' + code + '}'));
         });
-};
+}
 
-Job.prototype.processCase = function(node, ctx) {
-    let statement = '';
-    this.expressions.push(AngularExpressions.compile(node.expr));
-    const index = this.expressions.length - 1;
-    statement += 'locals.' + node.name + ' = $$[' + index + '](locals);';
-    const promises = node.when.map(when=> {
-        const expr = AngularExpressions.compile(when.expr);
-        this.expressions.push(expr);
-        const index = this.expressions.length - 1;
-        const ifCap = expr.constant ?
-        'if (locals.' + node.name + ' == $$[' + index + '](locals))' :
-        'if ($$[' + index + '](locals))';
-        return this.processNodes(when.nodes, ctx)
-            .then(code => ifCap + '{' + code + '}');
-    });
-    return Promise.all(promises)
-        .then(ifs => {
-            statement += ifs.join(' else ');
-            if (!node.otherwise) {
-                return scoped(statement);
-            }
-            return this.processNodes(node.otherwise.nodes, ctx)
-                .then(code => scoped(statement + ' else {' + code + '}'));
-        });
-};
-
-Job.prototype.processEach = function(node, ctx) {
+function processEach(node, ctx) {
     const job = this;
     job.expressions.push(AngularExpressions.compile(node.expr));
     const index = job.expressions.length - 1;
@@ -240,7 +227,7 @@ Job.prototype.processEach = function(node, ctx) {
         'function(locals) {';
     return this.processNodes(node.nodes, ctx)
         .then(code => scoped(statement + code + '})'));
-};
+}
 
 function localPath(relativeTo, file) {
     if (file.indexOf('/') === 0) {
@@ -276,17 +263,3 @@ function bufferEscaped(code) {
 function buffer(code) {
     return 'out.push(' + code + ')';
 }
-
-Job.NODE_TYPES = {
-    'plain': Job.prototype.processPlain,
-    'comment': Job.prototype.processComment,
-    'def': Job.prototype.processDef,
-    'block': Job.prototype.processBlock,
-    'include': Job.prototype.processInclude,
-    'inline': Job.prototype.processInline,
-    'expr': Job.prototype.processExpr,
-    'var': Job.prototype.processVar,
-    'if': Job.prototype.processIf,
-    'case': Job.prototype.processCase,
-    'each': Job.prototype.processEach
-};

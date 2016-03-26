@@ -80,26 +80,6 @@ describe('Compiler', function() {
             .then(html => assertHtmlFile(html, 'if/_100500.html'));
     });
 
-    it('should process case statements without locals', function() {
-        return render('case/index.html')
-            .then(html => assertHtmlFile(html, 'case/_undefined.html'));
-    });
-
-    it('should process case when constants', function() {
-        return render('case/index.html', { friends: 1 })
-            .then(html => assertHtmlFile(html, 'case/_1.html'));
-    });
-
-    it('should process case when expressions', function() {
-        return render('case/index.html', { friends: 2 })
-            .then(html => assertHtmlFile(html, 'case/_2.html'));
-    });
-
-    it('should process case otherwise statements', function() {
-        return render('case/index.html', { friends: 100500 })
-            .then(html => assertHtmlFile(html, 'case/_100500.html'));
-    });
-
     it('should process each statements with arrays', function() {
         return render('each/index.html', { users: users })
             .then(html => assertHtmlFile(html, 'each/_array.html'));

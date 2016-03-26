@@ -237,30 +237,6 @@ Simple single-expression ifs are also supported:
 <if expr='happy'>Yay!</if>
 ```
 
-### Case Statement
-
-Case statements resemble regular switch-case, but allow matching non-declarative conditions:
-
-```html
-<case:e expr="friends">
-  <when expr="1">
-    <p>You have one friend.</p>
-  </when>
-  <when expr="e > 1 && e <= 5">
-    <p>You have a few friends.</p>
-  </when>
-  <when expr="e > 5">
-    <p>You have a #{e} friends.</p>
-  </when>
-  <otherwise>
-    <p>You have no friends.</p>
-  </otherwise>
-</case:e>
-```
-
-In this example `friends` expression is evaluated and becomes accessible 
-as local variable `e`.
-
 ### Each Statement
 
 To iterate over collections (arrays or objects) use `<each:varName in="collection">...`.
