@@ -5,6 +5,7 @@ Isomorphic (Node & Browser) template engine for composing XML-ish documents
 
 Key features:
 
+  * **no dependencies**
   * **composable templates** — super powerful includes with blocks
     (akin to Jade's extend/block)
   * **flexibility** — template loading is abstracted from fs,
@@ -465,8 +466,9 @@ and theme templates override system templates.
 This scheme is straightforward with ZenMill by supplying a fallback-based loader
 (with logic like "try user, if fails try theme, if fails try system").
 
-The important thing is that this also works with all includes, which is
-contrast to **every single template engine** out there.
+The important thing is that this also works with included files: they would
+also be resolved using fallback-based algorithm rather than relatively.
+This is contrast to **every single template engine** out there.
 
 ## License
 

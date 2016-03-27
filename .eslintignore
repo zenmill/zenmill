@@ -1,3 +1,4 @@
 node_modules
 src/grammar.js
 src/runtime.js
+browser

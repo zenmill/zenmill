@@ -5,17 +5,34 @@
   "main": "index.js",
   "scripts": {
     "compile": "pegjs src/grammar.peg",
+    "browser": "browserify -s zenmill -e src/index.js -o browser/zenmill.js",
+    "browser-min": "uglifyjs browser/zenmill.js -m -c -o browser/zenmill.min.js",
     "check": "eslint .",
     "test": "mocha"
   },
   "pre-commit": [
     "compile",
+    "browser",
+    "browser-min",
     "check",
     "test"
   ],
+  "browser": {
+    "path": "path-browserify",
+    "fs": false
+  },
+  "browserify": {
+    "transform": [
+      "babelify",
+      "brfs"
+    ]
+  },
   "repository": {
     "type": "git",
     "url": "git@github.com/zenmill/zenmill"
+  },
+  "bugs": {
+    "url": "https://github.com/zenmill/zenmill/issues"
   },
   "keywords": [
     "template",
@@ -24,15 +41,18 @@
   ],
   "author": "Boris Okunskiy",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/zenmill/zenmill/issues"
-  },
   "homepage": "https://github.com/zenmill/zenmill",
   "devDependencies": {
+    "babel-preset-es2015": "^6.6.0",
+    "babelify": "^7.2.0",
+    "brfs": "^1.4.3",
+    "browserify": "^13.0.0",
     "eslint": "^2.4.0",
     "fs-promise": "^0.5.0",
     "mocha": "^2.4.5",
+    "path-browserify": "0.0.0",
     "pegjs": "^0.9.0",
-    "pre-commit": "^1.1.2"
+    "pre-commit": "^1.1.2",
+    "uglify-js": "^2.6.2"
   }
 }
