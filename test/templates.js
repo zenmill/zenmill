@@ -91,11 +91,10 @@ describe('Compiler', function() {
     });
 
     it('should strip comments when told to', function() {
-        const compile = createCompiler(load, {
+        const compiler = createCompiler(load, {
             stripComments: true
         });
-        return compile('comments/index.html')
-            .then(fn => fn())
+        return compiler.render('comments/index.html')
             .then(html => assertHtmlFile(html, 'comments/_stripped.html'));
     });
 

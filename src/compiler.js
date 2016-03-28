@@ -26,10 +26,13 @@ module.exports = function createCompiler(load, options) {
         return job.compile();
     }
 
-    compile.render = function(file, data) {
+    function render(file, data) {
         return compile(file).then(fn => fn(data));
-    };
+    }
 
-    return compile;
+    return {
+        compile,
+        render
+    };
 };
 

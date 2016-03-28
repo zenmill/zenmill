@@ -348,13 +348,16 @@ module.exports = function createCompiler(load, options) {
         return job.compile();
     }
 
-    compile.render = function (file, data) {
+    function render(file, data) {
         return compile(file).then(function (fn) {
             return fn(data);
         });
-    };
+    }
 
-    return compile;
+    return {
+        compile: compile,
+        render: render
+    };
 };
 
 },{"./job":6,"path":1}],4:[function(require,module,exports){

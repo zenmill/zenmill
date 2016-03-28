@@ -60,16 +60,15 @@ const compiler zenmill(file => {
 export default compiler;
 ```
 
-Then use `compiler` to render templates:
+Then use `compiler.render` to render templates:
 
 ```es6
 compiler.render('users/list.html', { users })
     .then(html => ...)
 ```
 
-The `compiler` instance itself is a function that returns a Promise
-with compiled function. This function can be called synchronously
-to render template with provided `data`.
+Each template is compiled asynchronously into a function using `compiler.compile`.
+This function can then be called synchronously to render template with provided `data`.
 
 Here's an ES7 example of how we could implement mtime-based caching
 of template functions:
@@ -90,7 +89,7 @@ async function compile(file) {
       return cached.fn; 
     }
   }
-  const fn = await compiler(file);
+  const fn = await compiler.compile(file);
   cached[file] = { mtime: Date.now(), fn };
   return fn;
 }
