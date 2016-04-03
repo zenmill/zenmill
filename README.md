@@ -90,7 +90,7 @@ async function compile(file) {
     }
   }
   const fn = await compiler.compile(file);
-  cached[file] = { mtime: Date.now(), fn };
+  cache[file] = { mtime: Date.now(), fn };
   return fn;
 }
 

@@ -4005,7 +4005,7 @@ function scoped(code) {
 }
 
 function wrapExpr(expr) {
-    return '(function() { with(locals) { return ' + expr + ' }})()';
+    return '(function() { with(locals) { return ' + expr.trim() + ' }})()';
 }
 
 function bufferText(str) {
