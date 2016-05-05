@@ -1,6 +1,6 @@
 {
   "name": "zenmill",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Template language with strong spirit",
   "main": "src/index.js",
   "scripts": {
